@@ -90,9 +90,9 @@ export class Observer {
 // helpers
 
 /**
- * Augment a target Object or Array by intercepting
- * the prototype chain using __proto__
- */
+  * 设置 target.__proto__ 的原型对象为 src
+  * 比如 数组对象，arr.__proto__ = arrayMethods
+  */
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
   target.__proto__ = src
@@ -100,8 +100,8 @@ function protoAugment (target, src: Object) {
 }
 
 /**
- * Augment a target Object or Array by defining
- * hidden properties.
+ * 在目标对象上定义指定属性
+ * 比如数组：为数组对象定义那七个方法
  */
 /* istanbul ignore next */
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
@@ -299,8 +299,8 @@ export function del (target: Array<any> | Object, key: any) {
 }
 
 /**
- * Collect dependencies on array elements when the array is touched, since
- * we cannot intercept array element access like property getters.
+ * 遍历每个数组元素，递归处理数组项为对象的情况，为其添加依赖.
+ * 因为前面的递归阶段无法为数组中的对象元素添加依赖.
  */
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
