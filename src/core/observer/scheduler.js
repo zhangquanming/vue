@@ -157,15 +157,16 @@ function callActivatedHooks (queue) {
 }
 
 /**
- * Push a watcher into the watcher queue.
- * Jobs with duplicate IDs will be skipped unless it's
- * pushed when the queue is being flushed.
+ * 将 watcher 放入 watcher 队列
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 如果 watcher 已经存在，则跳过，不会重复入队
   if (has[id] == null) {
+    // 缓存 watcher.id，用于判断 watcher 是否已经入队
     has[id] = true
     if (!flushing) {
+      // 当前没有处于刷新队列状态，watcher 直接入队
       queue.push(watcher)
     } else {
       // if already flushing, splice the watcher based on its id
