@@ -13,14 +13,16 @@ const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML
 })
-
+// 缓存原型上的方法
 const mount = Vue.prototype.$mount
+// 重新定义该方法
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
   el = el && query(el)
 
+  // 对 el 做了限制，Vue 不能挂载在 body、html 这样的根节点上
   /* istanbul ignore if */
   if (el === document.body || el === document.documentElement) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -31,6 +33,7 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
+  // 如果没有定义 render 方法，则会把 el 或者 template 字符串转换成 render 方法
   if (!options.render) {
     let template = options.template
     if (template) {
@@ -61,7 +64,9 @@ Vue.prototype.$mount = function (
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
-
+      // 最终都会转换成 render 方法，
+      // 这个过程是 Vue 的一个“在线编译”的过程，
+      // 它是调用 compileToFunctions 方法实现的
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,
@@ -79,6 +84,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
+  // 调用原型上方法挂载
   return mount.call(this, el, hydrating)
 }
 

@@ -169,8 +169,9 @@ export function queueWatcher (watcher: Watcher) {
       // 当前没有处于刷新队列状态，watcher 直接入队
       queue.push(watcher)
     } else {
-      // if already flushing, splice the watcher based on its id
-      // if already past its id, it will be run next immediately.
+      // 已经在刷新队列了
+      // 从队列末尾开始倒序遍历，根据当前 watcher.id 找到它大于的 watcher.id 的位置，然后将自己插入到该位置之后的下一个位置
+      // 即将当前 watcher 放入已排序的队列中，且队列仍是有序的
       let i = queue.length - 1
       while (i > index && queue[i].id > watcher.id) {
         i--
@@ -182,9 +183,16 @@ export function queueWatcher (watcher: Watcher) {
       waiting = true
 
       if (process.env.NODE_ENV !== 'production' && !config.async) {
+        // 直接刷新调度队列
+        // 一般不会走这儿，Vue 默认是异步执行，如果改为同步执行，性能会大打折扣
         flushSchedulerQueue()
         return
       }
+      /**
+        * 熟悉的 nextTick => vm.$nextTick、Vue.nextTick
+        *   1、将 回调函数（flushSchedulerQueue） 放入 callbacks 数组
+        *   2、通过 pending 控制向浏览器任务队列中添加 flushCallbacks 函数
+        */
       nextTick(flushSchedulerQueue)
     }
   }
