@@ -457,11 +457,10 @@ function createWatcher (
 }
 
 export function stateMixin (Vue: Class<Component>) {
-  // flow somehow has problems with directly declared definition object
-  // when using Object.defineProperty, so we have to procedurally build up
-  // the object here.
+  // data
   const dataDef = {}
   dataDef.get = function () { return this._data }
+  // props
   const propsDef = {}
   propsDef.get = function () { return this._props }
   if (process.env.NODE_ENV !== 'production') {
@@ -476,6 +475,8 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
+  // 将 data 属性和 props 属性挂载到 Vue.prototype 对象上
+  // 这样在程序中就可以通过 this.$data 和 this.$props 来访问 data 和 props 对象了
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 

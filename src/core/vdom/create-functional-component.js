@@ -91,6 +91,19 @@ export function FunctionalRenderContext (
 
 installRenderHelpers(FunctionalRenderContext.prototype)
 
+/**
+ * 执行函数式组件的 render 函数生成组件的 VNode，做了以下 3 件事：
+ *   1、设置组件的 props 对象
+ *   2、设置函数式组件的渲染上下文，传递给函数式组件的 render 函数
+ *   3、调用函数式组件的 render 函数生成 vnode
+ * 
+ * @param {*} Ctor 组件的构造函数 
+ * @param {*} propsData 额外的 props 对象
+ * @param {*} data 节点属性组成的 JSON 字符串
+ * @param {*} contextVm 上下文
+ * @param {*} children 子节点数组
+ * @returns Vnode or Array<VNode>
+ */
 export function createFunctionalComponent (
   Ctor: Class<Component>,
   propsData: ?Object,
@@ -98,18 +111,25 @@ export function createFunctionalComponent (
   contextVm: Component,
   children: ?Array<VNode>
 ): VNode | Array<VNode> | void {
+  // 组件配置项
   const options = Ctor.options
+  // 获取 props 对象
   const props = {}
+  // 组件本身的 props 选项
   const propOptions = options.props
+  // 设置函数式组件的 props 对象
   if (isDef(propOptions)) {
+    // 说明该函数式组件本身提供了 props 选项，则将 props.key 的值设置为组件上传递下来的对应 key 的值
     for (const key in propOptions) {
       props[key] = validateProp(key, propOptions, propsData || emptyObject)
     }
   } else {
+    // 当前函数式组件没有提供 props 选项，则将组件上的 attribute 自动解析为 props
     if (isDef(data.attrs)) mergeProps(props, data.attrs)
     if (isDef(data.props)) mergeProps(props, data.props)
   }
 
+  // 实例化函数式组件的渲染上下文
   const renderContext = new FunctionalRenderContext(
     data,
     props,
@@ -118,8 +138,10 @@ export function createFunctionalComponent (
     Ctor
   )
 
+  // 调用 render 函数，生成 vnode，并给 render 函数传递 _c 和 渲染上下文
   const vnode = options.render.call(null, renderContext._c, renderContext)
 
+  // 在最后生成的 VNode 对象上加一些标记，表示该 VNode 是一个函数式组件生成的，最后返回 VNode
   if (vnode instanceof VNode) {
     return cloneAndMarkFunctionalResult(vnode, data, renderContext.parent, options, renderContext)
   } else if (Array.isArray(vnode)) {

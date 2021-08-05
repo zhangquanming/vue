@@ -133,22 +133,24 @@ export function initInternalComponent (vm: Component, options: InternalComponent
  * @return {Object} options
  */
 export function resolveConstructorOptions (Ctor: Class<Component>) {
-  // 配置项目
+  // 从实例构造函数上获取选项
   let options = Ctor.options
   if (Ctor.super) {
     // 存在基类，递归解析基类构造函数的选项
     const superOptions = resolveConstructorOptions(Ctor.super)
+    // 缓存
     const cachedSuperOptions = Ctor.superOptions
     if (superOptions !== cachedSuperOptions) {
-      // 说明基类构造函数选项已经发生改变，需要重新设置
+      // 说明基类的配置项发生了更改
       Ctor.superOptions = superOptions
-      // 检查 Ctor.options 上是否有任何后期修改/附加的选项（＃4976）
+      // 找到更改的选项
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // 如果存在被修改或增加的选项，则合并两个选项
       if (modifiedOptions) {
+        // 将更改的选项和 extend 选项合并
         extend(Ctor.extendOptions, modifiedOptions)
       }
-      // 选项合并，将合并结果赋值为 Ctor.options
+      // 将新的选项赋值给 options
       options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
       if (options.name) {
         options.components[options.name] = Ctor

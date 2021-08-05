@@ -21,7 +21,7 @@ import {
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
 
-export function setActiveInstance(vm: Component) {
+export function setActiveInstance (vm: Component) {
   const prevActiveInstance = activeInstance
   activeInstance = vm
   return () => {
@@ -56,6 +56,9 @@ export function initLifecycle (vm: Component) {
 }
 
 export function lifecycleMixin (Vue: Class<Component>) {
+  /**
+   * 负责更新页面，页面首次渲染和后续更新的入口位置，也是 patch 的入口位置 
+   */
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
     const prevEl = vm.$el
@@ -65,10 +68,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
     if (!prevVnode) {
-      // initial render
+      // 首次渲染，即初始化页面时走这里
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
-      // updates
+      // 响应式数据更新时，即更新页面时走这里
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     restoreActiveInstance()
@@ -87,6 +90,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // updated in a parent's updated hook.
   }
 
+  /**
+   * 直接调用 watcher.update 方法，迫使组件重新渲染。
+   * 它仅仅影响实例本身和插入插槽内容的子组件，而不是所有子组件
+   */
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
@@ -94,19 +101,27 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
   }
 
+  /**
+   * 完全销毁一个实例。清理它与其它实例的连接，解绑它的全部指令及事件监听器。
+   */
   Vue.prototype.$destroy = function () {
     const vm: Component = this
     if (vm._isBeingDestroyed) {
+      // 表示实例已经销毁
       return
     }
+    // 调用 beforeDestroy 钩子
     callHook(vm, 'beforeDestroy')
+    // 标识实例已经销毁
     vm._isBeingDestroyed = true
     // remove self from parent
+    // 把自己从老爹（$parent)的肚子里（$children）移除
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 移除依赖监听
     if (vm._watcher) {
       vm._watcher.teardown()
     }
@@ -121,11 +136,11 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
     // call the last hook...
     vm._isDestroyed = true
-    // invoke destroy hooks on current rendered tree
+    // 调用 __patch__，销毁节点
     vm.__patch__(vm._vnode, null)
-    // fire destroyed hook
+    // 调用 destroyed 钩子
     callHook(vm, 'destroyed')
-    // turn off all instance listeners.
+    // 关闭实例的所有事件监听
     vm.$off()
     // remove __vue__ reference
     if (vm.$el) {
@@ -186,6 +201,7 @@ export function mountComponent (
       measure(`vue ${name} patch`, startTag, endTag)
     }
   } else {
+    // 执行 vm._render() 函数，得到 虚拟 DOM，并将 vnode 传递给 _update 方法，接下来就该到 patch 阶段了
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }
@@ -334,18 +350,33 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
 }
 
+/**
+ * callHook(vm, 'mounted')
+ * 执行实例指定的生命周期钩子函数
+ * 如果实例设置有对应的 Hook Event，比如：<comp @hook:mounted="method" />，执行完生命周期函数之后，触发该事件的执行
+ * @param {*} vm 组件实例
+ * @param {*} hook 生命周期钩子函数
+ */
 export function callHook (vm: Component, hook: string) {
+  // 在执行生命周期钩子函数期间禁止依赖收集
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
+  // 从实例配置对象中获取指定钩子函数，比如 mounted
   const handlers = vm.$options[hook]
+  // mounted hook
   const info = `${hook} hook`
   if (handlers) {
+    // 通过 invokeWithErrorHandler 执行生命周期钩子
     for (let i = 0, j = handlers.length; i < j; i++) {
       invokeWithErrorHandling(handlers[i], vm, null, vm, info)
     }
   }
+  // Hook Event，如果设置了 Hook Event，比如 <comp @hook:mounted="method" />，则通过 $emit 触发该事件
+  // vm._hasHookEvent 标识组件是否有 hook event，这是在 vm.$on 中处理组件自定义事件时设置的
   if (vm._hasHookEvent) {
+    // vm.$emit('hook:mounted')
     vm.$emit('hook:' + hook)
   }
+  // 关闭依赖收集
   popTarget()
 }
